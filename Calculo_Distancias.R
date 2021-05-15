@@ -22,7 +22,6 @@ COORDENADAS$longitud <- as.character(COORDENADAS$longitud)
 # CALCULO DE LA DISTANCIA CON LA CONSULTA DE LA PAGINA DE INTERNET
 #===============================================================================
 MATRIZ_CONSULTA <- data.frame(ID = COORDENADAS$ID)
-MATRIZ_CONSULTA <- slice(MATRIZ_CONSULTA, 1:14)
 #===============================================================================
 # SE UTILIZA EL NAVEGADOR FIREFOX
 profile <- makeFirefoxProfile(list(browser.download.folderList = 2L,
@@ -39,8 +38,7 @@ remDr$navigate("https://www.nhc.noaa.gov/gccalc.shtml")
 # SE DEJA AFUERA YA QUE AL MOMENTO DE RESETEAR LOS PARAMETROS NO CAMBIA LA SELECCION
 remDr$findElement(using = "name", value = "Dunit")$sendKeysToElement(list('km'))
 
-##l <- nrow(COORDENADAS)-1
-l <- 13
+l <- nrow(COORDENADAS)-1
 tiempo = proc.time()
 for (j in 1:l) {
   

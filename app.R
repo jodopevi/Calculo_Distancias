@@ -4,11 +4,11 @@ library(htmltools)
 library(RColorBrewer)
 library(scales)
 library(lattice)
-
 library(openxlsx)
 library(readxl)
 library(tidyverse)
 library(DT)
+library(RSelenium)
 
 source('www/distancia.R', local = T)
 
@@ -56,13 +56,8 @@ ui <- fluidPage(
                                           
                                           actionButton('cargar_datos', 
                                                        'Cargar datos',
-                                                       class = 'butt'),
-                                          
-                                          # helpText('Cálculo de las distancias'),
-                                          # actionButton('descargar_distancia', 
-                                          #              'Descargar',
-                                          #              class = 'butt')
-                                          ))), # FIN DEL tabPanel
+                                                       class = 'butt')))), # FIN DEL tabPanel
+               
                tabPanel('Matriz Calculada',
                         
                         helpText('Cálculo de las distancias con fórmula'),
@@ -70,8 +65,16 @@ ui <- fluidPage(
                                      'Generar',
                                      class = 'butt'),
                         hr(style = 'border-top: 0px'),
-                        dataTableOutput('matrizcaldulada')),
-               tabPanel('Matriz Consultada')
+                        dataTableOutput('matrizcaldulada')), # FIN DEL tabPanel
+               
+               tabPanel('Matriz de Internet',
+                        
+                        helpText('Cálculo de las distancias usando la página'),
+                        actionButton('descargar_distancia', 
+                                     'Descargar',
+                                     class = 'butt'),
+                        hr(style = 'border-top: 0px'),
+                        dataTableOutput('matrizinternet')) # FIN DEL tabPanel
     ) # FIN DEL navbarPage
 ) # FIN DEL ui
 
@@ -187,8 +190,123 @@ server <- function(input, output, session) {
     })
     
     output$matrizcaldulada <- renderDataTable(datatable({
-        #---------------------------------------------------------------------------
+
         BASE <- BASE_MATRIZ_CALCULADA()
+        
+        if(is.null(BASE)) {return(NULL)}
+        
+        BASE
+        
+    }, extensions = 'Buttons',
+    options = list(pageLength = 200,
+                   dom = 'Bfrtip', 
+                   buttons = c('copy', 'csv', 'excel', 'pdf', 'print')),
+    rownames = F
+    ))
+    
+    BASE_MATRIZ_INTERNET <- eventReactive(input$descargar_distancia,{
+        
+        COORDENADAS <- BASE()
+        
+        if(is.null(COORDENADAS)) {return(NULL)}
+        
+        notificacion <- showNotification(
+            'Iniciando el cálculo con ayuda de internet', 
+            duration = 10,
+            closeButton = F
+        )
+        on.exit(removeNotification(notificacion), add = T)
+        
+        colnames(COORDENADAS)[2] <- 'latitud'
+        colnames(COORDENADAS)[3] <- 'longitud'
+        COORDENADAS$NS <- ifelse(COORDENADAS$latitud > 0,'N','S')
+        COORDENADAS$EW <- ifelse(COORDENADAS$longitud > 0,'W','E')
+        COORDENADAS$latitud <- as.character(COORDENADAS$latitud)
+        COORDENADAS$longitud <- as.character(COORDENADAS$longitud)
+        
+        # CALCULO DE LA DISTANCIA CON LA CONSULTA DE LA PAGINA DE INTERNET
+        MATRIZ_CONSULTA <- data.frame(ID = COORDENADAS$ID)
+        MATRIZ_CONSULTA <- slice(MATRIZ_CONSULTA,1:10)
+        
+        # SE UTILIZA EL NAVEGADOR FIREFOX
+        profile <- makeFirefoxProfile(list(browser.download.folderList = 2L,
+                                           browser.download.manager.showWhenStarting = FALSE,
+                                           browser.helperApps.neverAsk.openFile = "text/plain",
+                                           browser.helperApps.neverAsk.saveToDisk = "text/plain"))
+        rD <- RSelenium::rsDriver(browser = "firefox",
+                                  port = 4444L,
+                                  verbose = F,
+                                  extraCapabilities = profile) 
+        remDr <- rD[["client"]]
+        remDr$navigate("https://www.nhc.noaa.gov/gccalc.shtml")
+        # SE SELECCIONAN LAS UNIDADES EN KILOMETROS
+        # SE DEJA AFUERA YA QUE AL MOMENTO DE RESETEAR LOS PARAMETROS NO CAMBIA LA SELECCION
+        remDr$findElement(using = "name", value = "Dunit")$sendKeysToElement(list('km'))
+        
+        #l <- nrow(COORDENADAS)-1
+        l <- 9
+        tiempo = proc.time()
+        for (j in 1:l) {
+            
+            DISTANCIAS <- c(replicate(j,0))
+            
+            Sys.sleep(1)
+            
+            # COORDENADA 1
+            remDr$findElement(using = "name", value = "lat1")$clearElement()
+            Sys.sleep(1)
+            remDr$findElement(using = "name", value = "lat1")$sendKeysToElement(list(COORDENADAS$latitud[j]))
+            Sys.sleep(1)
+            remDr$findElement(using = "name", value = "NS1")$sendKeysToElement(list(COORDENADAS$NS[j]))
+            Sys.sleep(1)
+            remDr$findElement(using = "name", value = "lon1")$clearElement()
+            Sys.sleep(1)
+            remDr$findElement(using = "name", value = "lon1")$sendKeysToElement(list(COORDENADAS$longitud[j]))
+            Sys.sleep(1)
+            remDr$findElement(using = "name", value = "EW1")$sendKeysToElement(list(COORDENADAS$EW[j]))
+            
+            for (i in j:l) {
+                
+                print(paste0('Coordenadas: [',j,', ',i+1,']'))
+                
+                Sys.sleep(1)
+                # COORDENADA 2
+                remDr$findElement(using = "name", value = "lat2")$clearElement()
+                Sys.sleep(1)
+                remDr$findElement(using = "name", value = "lat2")$sendKeysToElement(list(COORDENADAS$latitud[i+1]))
+                Sys.sleep(1)
+                remDr$findElement(using = "name", value = "NS2")$sendKeysToElement(list(COORDENADAS$NS[i+1]))
+                Sys.sleep(1)
+                remDr$findElement(using = "name", value = "lon2")$clearElement()
+                Sys.sleep(1)
+                remDr$findElement(using = "name", value = "lon2")$sendKeysToElement(list(COORDENADAS$longitud[i+1]))
+                Sys.sleep(1)
+                remDr$findElement(using = "name", value = "EW2")$sendKeysToElement(list(COORDENADAS$EW[i+1]))
+                Sys.sleep(1)
+                # SE CALCULA LA DISTANCIA
+                remDr$findElements(using = 'xpath', "//*/input[@value = 'Compute']")[[1]]$clickElement()
+                Sys.sleep(1)
+                # SE OBTIENE EL VALOR CALCULADO DE LA DISTANCIA
+                DISTANCIA <- remDr$findElement(using = "name", value = "d12")$getElementAttribute('value')[[1]]
+                DISTANCIAS <- c(DISTANCIAS, DISTANCIA)
+                # NO ES NECESARIO DE REINICIAN LOS PARAMETROS
+            }
+            
+            DISTANCIAS <- as.numeric(DISTANCIAS)
+            MATRIZ_CONSULTA <- cbind(MATRIZ_CONSULTA, DISTANCIAS)
+            colnames(MATRIZ_CONSULTA)[j+1] <- COORDENADAS$ID[j]
+            
+        }
+        
+        remDr$quit()
+        system("taskkill /im java.exe /f", intern = F, ignore.stdout = F)
+        
+        COORDENADAS
+    })
+    
+    output$matrizinternet <- renderDataTable(datatable({
+        
+        BASE <- BASE_MATRIZ_INTERNET()
         
         if(is.null(BASE)) {return(NULL)}
         
