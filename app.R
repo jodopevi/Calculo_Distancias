@@ -220,13 +220,14 @@ server <- function(input, output, session) {
         colnames(COORDENADAS)[2] <- 'latitud'
         colnames(COORDENADAS)[3] <- 'longitud'
         COORDENADAS$NS <- ifelse(COORDENADAS$latitud > 0,'N','S')
-        COORDENADAS$EW <- ifelse(COORDENADAS$longitud > 0,'W','E')
+        COORDENADAS$EW <- ifelse(COORDENADAS$longitud > 0,'E','W')
+        COORDENADAS$latitud <- abs(COORDENADAS$latitud)
+        COORDENADAS$longitud <- abs(COORDENADAS$longitud)
         COORDENADAS$latitud <- as.character(COORDENADAS$latitud)
         COORDENADAS$longitud <- as.character(COORDENADAS$longitud)
         
         # CALCULO DE LA DISTANCIA CON LA CONSULTA DE LA PAGINA DE INTERNET
         MATRIZ_CONSULTA <- data.frame(ID = COORDENADAS$ID)
-        MATRIZ_CONSULTA <- slice(MATRIZ_CONSULTA,1:10)
         
         # SE UTILIZA EL NAVEGADOR FIREFOX
         profile <- makeFirefoxProfile(list(browser.download.folderList = 2L,
@@ -243,8 +244,7 @@ server <- function(input, output, session) {
         # SE DEJA AFUERA YA QUE AL MOMENTO DE RESETEAR LOS PARAMETROS NO CAMBIA LA SELECCION
         remDr$findElement(using = "name", value = "Dunit")$sendKeysToElement(list('km'))
         
-        #l <- nrow(COORDENADAS)-1
-        l <- 9
+        l <- nrow(COORDENADAS)-1
         tiempo = proc.time()
         for (j in 1:l) {
             
@@ -301,7 +301,7 @@ server <- function(input, output, session) {
         remDr$quit()
         system("taskkill /im java.exe /f", intern = F, ignore.stdout = F)
         
-        COORDENADAS
+        MATRIZ_CONSULTA
     })
     
     output$matrizinternet <- renderDataTable(datatable({
