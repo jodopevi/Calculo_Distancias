@@ -186,6 +186,8 @@ server <- function(input, output, session) {
             
         }
         
+        write.xlsx(MATRIZ_CALCULADA, 'www/Res_Matriz_Calculada.xlsx', rownames = F)
+        
         MATRIZ_CALCULADA
     })
     
@@ -228,6 +230,7 @@ server <- function(input, output, session) {
         
         # CALCULO DE LA DISTANCIA CON LA CONSULTA DE LA PAGINA DE INTERNET
         MATRIZ_CONSULTA <- data.frame(ID = COORDENADAS$ID)
+        MATRIZ_CONSULTA <- slice(MATRIZ_CONSULTA,1:20)
         
         # SE UTILIZA EL NAVEGADOR FIREFOX
         profile <- makeFirefoxProfile(list(browser.download.folderList = 2L,
@@ -244,8 +247,12 @@ server <- function(input, output, session) {
         # SE DEJA AFUERA YA QUE AL MOMENTO DE RESETEAR LOS PARAMETROS NO CAMBIA LA SELECCION
         remDr$findElement(using = "name", value = "Dunit")$sendKeysToElement(list('km'))
         
-        l <- nrow(COORDENADAS)-1
-        tiempo = proc.time()
+        #l <- nrow(COORDENADAS)-1
+        l <- 19
+        
+        withProgress(message = 'Calculando distancia', value = 0, {
+            n <- l
+            
         for (j in 1:l) {
             
             DISTANCIAS <- c(replicate(j,0))
@@ -296,10 +303,15 @@ server <- function(input, output, session) {
             MATRIZ_CONSULTA <- cbind(MATRIZ_CONSULTA, DISTANCIAS)
             colnames(MATRIZ_CONSULTA)[j+1] <- COORDENADAS$ID[j]
             
-        }
+            incProgress(1/n, 
+                        detail = paste(round((j/n)*100,1),' %'))
+            
+        }}) # TERMINA CICLO FOR Y EL PROGRESO
         
         remDr$quit()
         system("taskkill /im java.exe /f", intern = F, ignore.stdout = F)
+        
+        write.xlsx(MATRIZ_CONSULTA, 'www/Res_Matriz_Internet.xlsx', rownames = F)
         
         MATRIZ_CONSULTA
     })
