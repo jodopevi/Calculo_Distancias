@@ -20,5 +20,5 @@ y la matriz de distancias con ayuda de [web scraping](https://www.nhc.noaa.gov/g
 - Variable de la latitud
 - Variable de la longitud
 - Variable del ID de las coordenadas geográficas.
-3. Dar clic en el boton de ###### Cargar Datos.
-4. Se mostraran las coordenadas geográficas en el mapa, dar clic en la pestaña ###### Matriz Calculada.
+3. Dar clic en el boton de **Cargar Datos**.
+4. Se mostraran las coordenadas geográficas en el mapa, dar clic en la pestaña **Matriz Calculada**.
