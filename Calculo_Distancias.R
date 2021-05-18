@@ -15,7 +15,9 @@ COORDENADAS <- read_excel('Coordenadas.xlsx',sheet = 'Datos')
 colnames(COORDENADAS)[2] <- 'latitud'
 colnames(COORDENADAS)[3] <- 'longitud'
 COORDENADAS$NS <- ifelse(COORDENADAS$latitud > 0,'N','S')
-COORDENADAS$EW <- ifelse(COORDENADAS$longitud > 0,'W','E')
+COORDENADAS$EW <- ifelse(COORDENADAS$longitud > 0,'E','W')
+COORDENADAS$latitud <- abs(COORDENADAS$latitud)
+COORDENADAS$longitud <- abs(COORDENADAS$longitud)
 COORDENADAS$latitud <- as.character(COORDENADAS$latitud)
 COORDENADAS$longitud <- as.character(COORDENADAS$longitud)
 #===============================================================================
@@ -24,6 +26,7 @@ COORDENADAS$longitud <- as.character(COORDENADAS$longitud)
 MATRIZ_CONSULTA <- data.frame(ID = COORDENADAS$ID)
 #===============================================================================
 # SE UTILIZA EL NAVEGADOR FIREFOX
+system("taskkill /im java.exe /f", intern = F, ignore.stdout = F)
 profile <- makeFirefoxProfile(list(browser.download.folderList = 2L,
                                    browser.download.manager.showWhenStarting = FALSE,
                                    browser.helperApps.neverAsk.openFile = "text/plain",

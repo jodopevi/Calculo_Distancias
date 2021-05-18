@@ -43,16 +43,16 @@ ui <- fluidPage(
                                                       choices = ''),
                                           
                                           varSelectInput('latitud',
-                                                      'Variable de la Latitud',
-                                                      ''),
+                                                         'Variable de la Latitud',
+                                                         ''),
                                           
                                           varSelectInput('longitud',
-                                                      'Variable de la Longitud',
-                                                      ''),
+                                                         'Variable de la Longitud',
+                                                         ''),
                                           
                                           varSelectInput('id',
-                                                      'ID de los datos',
-                                                      ''),
+                                                         'ID de los datos',
+                                                         ''),
                                           
                                           actionButton('cargar_datos', 
                                                        'Cargar datos',
@@ -93,6 +93,7 @@ server <- function(input, output, session) {
                           choices = excel_sheets(input$base$datapath))
     })
     
+    
     observeEvent(input$hoja_excel,{
         
         if (is.null(input$base)) {
@@ -102,20 +103,21 @@ server <- function(input, output, session) {
         ARCHIVO <- read_excel(input$base$datapath, sheet = input$hoja_excel)
         
         updateVarSelectInput(session,
-                          'latitud',
-                          'Variable de la Latitud',
-                          data = ARCHIVO)
+                             'latitud',
+                             'Variable de la Latitud',
+                             data = ARCHIVO)
         
         updateVarSelectInput(session,
-                          'longitud',
-                          'Variable de la Longitud',
-                          data = ARCHIVO)
+                             'longitud',
+                             'Variable de la Longitud',
+                             data = ARCHIVO)
         
         updateVarSelectInput(session,
-                          'id',
-                          'ID de los datos',
-                          data = ARCHIVO)
+                             'id',
+                             'ID de los datos',
+                             data = ARCHIVO)
     })
+    
     
     BASE <- eventReactive(input$cargar_datos,{
         
@@ -127,6 +129,7 @@ server <- function(input, output, session) {
         
         ARCHIVO
     })
+    
     
     output$mapa <- renderLeaflet({
         
@@ -143,6 +146,7 @@ server <- function(input, output, session) {
                        ~`Coordenada X`,
                        label =~ htmlEscape(ID))
     })
+    
     
     BASE_MATRIZ_CALCULADA <- eventReactive(input$generar_distancia,{
         
@@ -162,6 +166,10 @@ server <- function(input, output, session) {
         AUX_BASE$longitud <- AUX_BASE$`Coordenada Y`
         
         l <- nrow(AUX_BASE)-1
+        
+        withProgress(message = 'Calculando distancia', value = 0, {
+            n <- l
+            
         for (j in 1:l) {
             
             DISTANCIAS <- c(replicate(j,0))
@@ -178,18 +186,21 @@ server <- function(input, output, session) {
                 DISTANCIA <- distancia(LATITUD_A, LONGITUD_A, LATITUD_B, LONGITUD_B)
                 DISTANCIAS <- c(DISTANCIAS, DISTANCIA)
                 
-            }
+                }
             
             DISTANCIAS <- as.numeric(DISTANCIAS)
             MATRIZ_CALCULADA <- cbind(MATRIZ_CALCULADA, DISTANCIAS)
             colnames(MATRIZ_CALCULADA)[j+1] <- AUX_BASE$ID[j]
             
-        }
+            incProgress(1/n, 
+                        detail = paste(round((j/n)*100,1),' %'))
+        }})
         
         write.xlsx(MATRIZ_CALCULADA, 'www/Res_Matriz_Calculada.xlsx', rownames = F)
         
         MATRIZ_CALCULADA
     })
+    
     
     output$matrizcaldulada <- renderDataTable(datatable({
 
@@ -205,6 +216,7 @@ server <- function(input, output, session) {
                    buttons = c('copy', 'csv', 'excel', 'pdf', 'print')),
     rownames = F
     ))
+    
     
     BASE_MATRIZ_INTERNET <- eventReactive(input$descargar_distancia,{
         
@@ -233,6 +245,7 @@ server <- function(input, output, session) {
         MATRIZ_CONSULTA <- slice(MATRIZ_CONSULTA,1:20)
         
         # SE UTILIZA EL NAVEGADOR FIREFOX
+        system("taskkill /im java.exe /f", intern = F, ignore.stdout = F)
         profile <- makeFirefoxProfile(list(browser.download.folderList = 2L,
                                            browser.download.manager.showWhenStarting = FALSE,
                                            browser.helperApps.neverAsk.openFile = "text/plain",
@@ -257,42 +270,42 @@ server <- function(input, output, session) {
             
             DISTANCIAS <- c(replicate(j,0))
             
-            Sys.sleep(1)
+            Sys.sleep(0.5)
             
             # COORDENADA 1
             remDr$findElement(using = "name", value = "lat1")$clearElement()
-            Sys.sleep(1)
+            Sys.sleep(0.5)
             remDr$findElement(using = "name", value = "lat1")$sendKeysToElement(list(COORDENADAS$latitud[j]))
-            Sys.sleep(1)
+            Sys.sleep(0.5)
             remDr$findElement(using = "name", value = "NS1")$sendKeysToElement(list(COORDENADAS$NS[j]))
-            Sys.sleep(1)
+            Sys.sleep(0.5)
             remDr$findElement(using = "name", value = "lon1")$clearElement()
-            Sys.sleep(1)
+            Sys.sleep(0.5)
             remDr$findElement(using = "name", value = "lon1")$sendKeysToElement(list(COORDENADAS$longitud[j]))
-            Sys.sleep(1)
+            Sys.sleep(0.5)
             remDr$findElement(using = "name", value = "EW1")$sendKeysToElement(list(COORDENADAS$EW[j]))
             
             for (i in j:l) {
                 
                 print(paste0('Coordenadas: [',j,', ',i+1,']'))
                 
-                Sys.sleep(1)
+                Sys.sleep(0.5)
                 # COORDENADA 2
                 remDr$findElement(using = "name", value = "lat2")$clearElement()
-                Sys.sleep(1)
+                Sys.sleep(0.5)
                 remDr$findElement(using = "name", value = "lat2")$sendKeysToElement(list(COORDENADAS$latitud[i+1]))
-                Sys.sleep(1)
+                Sys.sleep(0.5)
                 remDr$findElement(using = "name", value = "NS2")$sendKeysToElement(list(COORDENADAS$NS[i+1]))
-                Sys.sleep(1)
+                Sys.sleep(0.5)
                 remDr$findElement(using = "name", value = "lon2")$clearElement()
-                Sys.sleep(1)
+                Sys.sleep(0.5)
                 remDr$findElement(using = "name", value = "lon2")$sendKeysToElement(list(COORDENADAS$longitud[i+1]))
-                Sys.sleep(1)
+                Sys.sleep(0.5)
                 remDr$findElement(using = "name", value = "EW2")$sendKeysToElement(list(COORDENADAS$EW[i+1]))
-                Sys.sleep(1)
+                Sys.sleep(0.5)
                 # SE CALCULA LA DISTANCIA
                 remDr$findElements(using = 'xpath', "//*/input[@value = 'Compute']")[[1]]$clickElement()
-                Sys.sleep(1)
+                Sys.sleep(0.5)
                 # SE OBTIENE EL VALOR CALCULADO DE LA DISTANCIA
                 DISTANCIA <- remDr$findElement(using = "name", value = "d12")$getElementAttribute('value')[[1]]
                 DISTANCIAS <- c(DISTANCIAS, DISTANCIA)
@@ -315,6 +328,7 @@ server <- function(input, output, session) {
         
         MATRIZ_CONSULTA
     })
+    
     
     output$matrizinternet <- renderDataTable(datatable({
         
