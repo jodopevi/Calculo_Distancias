@@ -42,17 +42,17 @@ ui <- fluidPage(
                                                       'Hoja del archivo de Excel',
                                                       choices = ''),
                                           
-                                          selectInput('latitud',
+                                          varSelectInput('latitud',
                                                       'Variable de la Latitud',
-                                                      choices = ''),
+                                                      ''),
                                           
-                                          selectInput('longitud',
+                                          varSelectInput('longitud',
                                                       'Variable de la Longitud',
-                                                      choices = ''),
+                                                      ''),
                                           
-                                          selectInput('id',
+                                          varSelectInput('id',
                                                       'ID de los datos',
-                                                      choices = ''),
+                                                      ''),
                                           
                                           actionButton('cargar_datos', 
                                                        'Cargar datos',
@@ -101,20 +101,20 @@ server <- function(input, output, session) {
         
         ARCHIVO <- read_excel(input$base$datapath, sheet = input$hoja_excel)
         
-        updateSelectInput(session,
+        updateVarSelectInput(session,
                           'latitud',
-                          label = 'Variable de la Latitud',
-                          choices = colnames(ARCHIVO))
+                          'Variable de la Latitud',
+                          data = ARCHIVO)
         
-        updateSelectInput(session,
+        updateVarSelectInput(session,
                           'longitud',
-                          label = 'Variable de la Longitud',
-                          choices = colnames(ARCHIVO))
+                          'Variable de la Longitud',
+                          data = ARCHIVO)
         
-        updateSelectInput(session,
+        updateVarSelectInput(session,
                           'id',
-                          label = 'ID de los datos',
-                          choices = colnames(ARCHIVO))
+                          'ID de los datos',
+                          data = ARCHIVO)
     })
     
     BASE <- eventReactive(input$cargar_datos,{
