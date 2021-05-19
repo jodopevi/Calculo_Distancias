@@ -121,7 +121,6 @@ COORDENADAS$longitud <- as.numeric(COORDENADAS$longitud)
 MATRIZ_CALCULADA <- data.frame(ID = COORDENADAS$ID)
 #===============================================================================
 l <- nrow(COORDENADAS)-1
-
 tiempo = proc.time()
 for (j in 1:l) {
   
@@ -148,6 +147,13 @@ for (j in 1:l) {
 }
 proc.time()-tiempo
 
-write.xlsx(MATRIZ_CALCULADA,'Res_Matriz_Calculada.xlsx',row.names = F)
+MATRIZ_CALCULADA$Var <- 0.00
+colnames(MATRIZ_CALCULADA)[ncol(MATRIZ_CALCULADA)] <- COORDENADAS$ID[nrow(COORDENADAS)]
+rownames(MATRIZ_CALCULADA) <- MATRIZ_CALCULADA$ID
+MATRIZ_CALCULADA$ID <- NULL
+
+MATRIZ_CALCULADA <- MATRIZ_CALCULADA + t(MATRIZ_CALCULADA)
+
+write.xlsx(MATRIZ_CALCULADA,'Res_Matriz_Calculada.xlsx',row.names = T)
 
 

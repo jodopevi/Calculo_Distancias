@@ -242,7 +242,7 @@ server <- function(input, output, session) {
         
         # CALCULO DE LA DISTANCIA CON LA CONSULTA DE LA PAGINA DE INTERNET
         MATRIZ_CONSULTA <- data.frame(ID = COORDENADAS$ID)
-        MATRIZ_CONSULTA <- slice(MATRIZ_CONSULTA,1:20)
+        #MATRIZ_CONSULTA <- slice(MATRIZ_CONSULTA,1:20)
         
         # SE UTILIZA EL NAVEGADOR FIREFOX
         system("taskkill /im java.exe /f", intern = F, ignore.stdout = F)
@@ -260,8 +260,8 @@ server <- function(input, output, session) {
         # SE DEJA AFUERA YA QUE AL MOMENTO DE RESETEAR LOS PARAMETROS NO CAMBIA LA SELECCION
         remDr$findElement(using = "name", value = "Dunit")$sendKeysToElement(list('km'))
         
-        #l <- nrow(COORDENADAS)-1
-        l <- 19
+        l <- nrow(COORDENADAS)-1
+        #l <- 19
         
         withProgress(message = 'Calculando distancia', value = 0, {
             n <- l
