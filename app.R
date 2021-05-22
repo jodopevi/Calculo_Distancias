@@ -71,7 +71,7 @@ ui <- fluidPage(
                         
                         helpText('Cálculo de las distancias usando la página'),
                         actionButton('descargar_distancia', 
-                                     'Descargar',
+                                     'Generar',
                                      class = 'butt'),
                         hr(style = 'border-top: 0px'),
                         dataTableOutput('matrizinternet')) # FIN DEL tabPanel
@@ -103,18 +103,18 @@ server <- function(input, output, session) {
         ARCHIVO <- read_excel(input$base$datapath, sheet = input$hoja_excel)
         
         updateSelectInput(session,
-                             'latitud',
-                             'Variable de la Latitud',
-                             colnames(ARCHIVO))
-        
-        updateSelectInput(session,
-                             'longitud',
-                             'Variable de la Longitud',
+                          'latitud',
+                          'Variable de la Latitud',
                           colnames(ARCHIVO))
         
         updateSelectInput(session,
-                             'id',
-                             'ID de los datos',
+                          'longitud',
+                          'Variable de la Longitud',
+                          colnames(ARCHIVO))
+        
+        updateSelectInput(session,
+                          'id',
+                          'ID de los datos',
                           colnames(ARCHIVO))
     })
     
@@ -255,18 +255,24 @@ server <- function(input, output, session) {
         )
         on.exit(removeNotification(notificacion), add = T)
         
-        colnames(COORDENADAS)[2] <- 'latitud'
-        colnames(COORDENADAS)[3] <- 'longitud'
+        MATRIZ_CONSULTA <- COORDENADAS %>%
+            select(input$id) %>%
+            rename(ID = input$id)
+        LATITUD <- COORDENADAS %>%
+            select(input$latitud) %>%
+            rename(latitud = input$latitud)
+        LONGITUD <- COORDENADAS %>%
+            select(input$longitud) %>%
+            rename(longitud = input$longitud)
+        
+        COORDENADAS <- cbind(MATRIZ_CONSULTA, LATITUD, LONGITUD)
+        
         COORDENADAS$NS <- ifelse(COORDENADAS$latitud > 0,'N','S')
         COORDENADAS$EW <- ifelse(COORDENADAS$longitud > 0,'E','W')
         COORDENADAS$latitud <- abs(COORDENADAS$latitud)
         COORDENADAS$longitud <- abs(COORDENADAS$longitud)
         COORDENADAS$latitud <- as.character(COORDENADAS$latitud)
         COORDENADAS$longitud <- as.character(COORDENADAS$longitud)
-        
-        # CALCULO DE LA DISTANCIA CON LA CONSULTA DE LA PAGINA DE INTERNET
-        MATRIZ_CONSULTA <- data.frame(ID = COORDENADAS$ID)
-        MATRIZ_CONSULTA <- slice(MATRIZ_CONSULTA,1:10)
         
         # SE UTILIZA EL NAVEGADOR FIREFOX
         system("taskkill /im java.exe /f", intern = F, ignore.stdout = F)
@@ -284,8 +290,7 @@ server <- function(input, output, session) {
         # SE DEJA AFUERA YA QUE AL MOMENTO DE RESETEAR LOS PARAMETROS NO CAMBIA LA SELECCION
         remDr$findElement(using = "name", value = "Dunit")$sendKeysToElement(list('km'))
         
-        #l <- nrow(COORDENADAS)-1
-        l <- 9
+        l <- nrow(COORDENADAS)-1
         
         withProgress(message = 'Calculando distancia', value = 0, {
             n <- l
