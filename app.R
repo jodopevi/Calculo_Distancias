@@ -42,15 +42,15 @@ ui <- fluidPage(
                                                       'Hoja del archivo de Excel',
                                                       choices = ''),
                                           
-                                          varSelectInput('latitud',
+                                          selectInput('latitud',
                                                          'Variable de la Latitud',
                                                          ''),
                                           
-                                          varSelectInput('longitud',
+                                          selectInput('longitud',
                                                          'Variable de la Longitud',
                                                          ''),
                                           
-                                          varSelectInput('id',
+                                          selectInput('id',
                                                          'ID de los datos',
                                                          ''),
                                           
@@ -102,20 +102,20 @@ server <- function(input, output, session) {
         
         ARCHIVO <- read_excel(input$base$datapath, sheet = input$hoja_excel)
         
-        updateVarSelectInput(session,
+        updateSelectInput(session,
                              'latitud',
                              'Variable de la Latitud',
-                             data = ARCHIVO)
+                             colnames(ARCHIVO))
         
-        updateVarSelectInput(session,
+        updateSelectInput(session,
                              'longitud',
                              'Variable de la Longitud',
-                             data = ARCHIVO)
+                          colnames(ARCHIVO))
         
-        updateVarSelectInput(session,
+        updateSelectInput(session,
                              'id',
                              'ID de los datos',
-                             data = ARCHIVO)
+                          colnames(ARCHIVO))
     })
     
     
@@ -133,17 +133,26 @@ server <- function(input, output, session) {
     
     output$mapa <- renderLeaflet({
         
-        leaflet(BASE(), options = leafletOptions(minZoom = 3, maxZoom = 10)) %>%
-            #setView(lng = -102.552784, lat = 23.634501, zoom = 5) %>%
+        AUX_BASE <- BASE()
+        
+        if(is.null(AUX_BASE)) {return(NULL)}
+        
+        ID <- AUX_BASE %>%
+            select(input$id) %>%
+            rename(ID = input$id)
+        LATITUD <- AUX_BASE %>%
+            select(input$latitud) %>%
+            rename(latitud = input$latitud)
+        LONGITUD <- AUX_BASE %>%
+            select(input$longitud) %>%
+            rename(longitud = input$longitud)
+        
+        AUX_BASE <- cbind(ID, LATITUD, LONGITUD)
+        
+        leaflet(AUX_BASE, options = leafletOptions(minZoom = 3, maxZoom = 10)) %>%
             addProviderTiles('CartoDB.Positron', options = providerTileOptions(noWrap = T)) %>%
-            # addCircleMarkers(
-            #     lng =~ longitud, # Longitude coordinates
-            #     lat =~ latitud, # Latitude coordinates
-            #     radius = 5, # Total count
-            #     stroke = F, # Circle stroke
-            #     fillOpacity = 0.5) %>%
-            addMarkers(~`Coordenada Y`,
-                       ~`Coordenada X`,
+            addMarkers(~longitud,
+                       ~latitud,
                        label =~ htmlEscape(ID))
     })
     
@@ -161,9 +170,17 @@ server <- function(input, output, session) {
         )
         on.exit(removeNotification(notificacion), add = T)
         
-        MATRIZ_CALCULADA <- data.frame(ID = AUX_BASE$ID)
-        AUX_BASE$latitud <- AUX_BASE$`Coordenada X`
-        AUX_BASE$longitud <- AUX_BASE$`Coordenada Y`
+        MATRIZ_CALCULADA <- AUX_BASE %>%
+            select(input$id) %>%
+            rename(ID = input$id)
+        LATITUD <- AUX_BASE %>%
+            select(input$latitud) %>%
+            rename(latitud = input$latitud)
+        LONGITUD <- AUX_BASE %>%
+            select(input$longitud) %>%
+            rename(longitud = input$longitud)
+        
+        AUX_BASE <- cbind(MATRIZ_CALCULADA, LATITUD, LONGITUD)
         
         l <- nrow(AUX_BASE)-1
         
@@ -196,7 +213,14 @@ server <- function(input, output, session) {
                         detail = paste(round((j/n)*100,1),' %'))
         }})
         
-        write.xlsx(MATRIZ_CALCULADA, 'www/Res_Matriz_Calculada.xlsx', rownames = F)
+        MATRIZ_CALCULADA$Var <- 0.00
+        colnames(MATRIZ_CALCULADA)[ncol(MATRIZ_CALCULADA)] <- MATRIZ_CALCULADA$ID[nrow(MATRIZ_CALCULADA)]
+        rownames(MATRIZ_CALCULADA) <- MATRIZ_CALCULADA$ID
+        MATRIZ_CALCULADA$ID <- NULL
+        
+        MATRIZ_CALCULADA <- MATRIZ_CALCULADA + t(MATRIZ_CALCULADA)
+        
+        write.xlsx(MATRIZ_CALCULADA, 'www/Res_Matriz_Calculada.xlsx', rownames = T)
         
         MATRIZ_CALCULADA
     })
@@ -214,7 +238,7 @@ server <- function(input, output, session) {
     options = list(pageLength = 200,
                    dom = 'Bfrtip', 
                    buttons = c('copy', 'csv', 'excel', 'pdf', 'print')),
-    rownames = F
+    rownames = T
     ))
     
     
@@ -242,7 +266,7 @@ server <- function(input, output, session) {
         
         # CALCULO DE LA DISTANCIA CON LA CONSULTA DE LA PAGINA DE INTERNET
         MATRIZ_CONSULTA <- data.frame(ID = COORDENADAS$ID)
-        #MATRIZ_CONSULTA <- slice(MATRIZ_CONSULTA,1:20)
+        MATRIZ_CONSULTA <- slice(MATRIZ_CONSULTA,1:10)
         
         # SE UTILIZA EL NAVEGADOR FIREFOX
         system("taskkill /im java.exe /f", intern = F, ignore.stdout = F)
@@ -260,8 +284,8 @@ server <- function(input, output, session) {
         # SE DEJA AFUERA YA QUE AL MOMENTO DE RESETEAR LOS PARAMETROS NO CAMBIA LA SELECCION
         remDr$findElement(using = "name", value = "Dunit")$sendKeysToElement(list('km'))
         
-        l <- nrow(COORDENADAS)-1
-        #l <- 19
+        #l <- nrow(COORDENADAS)-1
+        l <- 9
         
         withProgress(message = 'Calculando distancia', value = 0, {
             n <- l
@@ -324,7 +348,14 @@ server <- function(input, output, session) {
         remDr$quit()
         system("taskkill /im java.exe /f", intern = F, ignore.stdout = F)
         
-        write.xlsx(MATRIZ_CONSULTA, 'www/Res_Matriz_Internet.xlsx', rownames = F)
+        MATRIZ_CONSULTA$Var <- 0.00
+        colnames(MATRIZ_CONSULTA)[ncol(MATRIZ_CONSULTA)] <- MATRIZ_CONSULTA$ID[nrow(MATRIZ_CONSULTA)]
+        rownames(MATRIZ_CONSULTA) <- MATRIZ_CONSULTA$ID
+        MATRIZ_CONSULTA$ID <- NULL
+        
+        MATRIZ_CONSULTA <- MATRIZ_CONSULTA + t(MATRIZ_CONSULTA)
+        
+        write.xlsx(MATRIZ_CONSULTA, 'www/Res_Matriz_Internet.xlsx', rownames = T)
         
         MATRIZ_CONSULTA
     })
@@ -342,7 +373,7 @@ server <- function(input, output, session) {
     options = list(pageLength = 200,
                    dom = 'Bfrtip', 
                    buttons = c('copy', 'csv', 'excel', 'pdf', 'print')),
-    rownames = F
+    rownames = T
     ))
     
 }

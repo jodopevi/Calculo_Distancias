@@ -24,6 +24,7 @@ COORDENADAS$longitud <- as.character(COORDENADAS$longitud)
 # CALCULO DE LA DISTANCIA CON LA CONSULTA DE LA PAGINA DE INTERNET
 #===============================================================================
 MATRIZ_CONSULTA <- data.frame(ID = COORDENADAS$ID)
+MATRIZ_CONSULTA <- slice(MATRIZ_CONSULTA,1:10)
 #===============================================================================
 # SE UTILIZA EL NAVEGADOR FIREFOX
 system("taskkill /im java.exe /f", intern = F, ignore.stdout = F)
@@ -41,48 +42,49 @@ remDr$navigate("https://www.nhc.noaa.gov/gccalc.shtml")
 # SE DEJA AFUERA YA QUE AL MOMENTO DE RESETEAR LOS PARAMETROS NO CAMBIA LA SELECCION
 remDr$findElement(using = "name", value = "Dunit")$sendKeysToElement(list('km'))
 
-l <- nrow(COORDENADAS)-1
+#l <- nrow(COORDENADAS)-1
+l <- 9
 tiempo = proc.time()
 for (j in 1:l) {
   
   DISTANCIAS <- c(replicate(j,0))
   
-  Sys.sleep(1)
+  Sys.sleep(0.5)
   
   # COORDENADA 1
   remDr$findElement(using = "name", value = "lat1")$clearElement()
-  Sys.sleep(1)
+  Sys.sleep(0.5)
   remDr$findElement(using = "name", value = "lat1")$sendKeysToElement(list(COORDENADAS$latitud[j]))
-  Sys.sleep(1)
+  Sys.sleep(0.5)
   remDr$findElement(using = "name", value = "NS1")$sendKeysToElement(list(COORDENADAS$NS[j]))
-  Sys.sleep(1)
+  Sys.sleep(0.5)
   remDr$findElement(using = "name", value = "lon1")$clearElement()
-  Sys.sleep(1)
+  Sys.sleep(0.5)
   remDr$findElement(using = "name", value = "lon1")$sendKeysToElement(list(COORDENADAS$longitud[j]))
-  Sys.sleep(1)
+  Sys.sleep(0.5)
   remDr$findElement(using = "name", value = "EW1")$sendKeysToElement(list(COORDENADAS$EW[j]))
   
   for (i in j:l) {
     
     print(paste0('Coordenadas: [',j,', ',i+1,']'))
     
-    Sys.sleep(1)
+    Sys.sleep(0.5)
     # COORDENADA 2
     remDr$findElement(using = "name", value = "lat2")$clearElement()
-    Sys.sleep(1)
+    Sys.sleep(0.5)
     remDr$findElement(using = "name", value = "lat2")$sendKeysToElement(list(COORDENADAS$latitud[i+1]))
-    Sys.sleep(1)
+    Sys.sleep(0.5)
     remDr$findElement(using = "name", value = "NS2")$sendKeysToElement(list(COORDENADAS$NS[i+1]))
-    Sys.sleep(1)
+    Sys.sleep(0.5)
     remDr$findElement(using = "name", value = "lon2")$clearElement()
-    Sys.sleep(1)
+    Sys.sleep(0.5)
     remDr$findElement(using = "name", value = "lon2")$sendKeysToElement(list(COORDENADAS$longitud[i+1]))
-    Sys.sleep(1)
+    Sys.sleep(0.5)
     remDr$findElement(using = "name", value = "EW2")$sendKeysToElement(list(COORDENADAS$EW[i+1]))
-    Sys.sleep(1)
+    Sys.sleep(0.5)
     # SE CALCULA LA DISTANCIA
     remDr$findElements(using = 'xpath', "//*/input[@value = 'Compute']")[[1]]$clickElement()
-    Sys.sleep(1)
+    Sys.sleep(0.5)
     # SE OBTIENE EL VALOR CALCULADO DE LA DISTANCIA
     DISTANCIA <- remDr$findElement(using = "name", value = "d12")$getElementAttribute('value')[[1]]
     DISTANCIAS <- c(DISTANCIAS, DISTANCIA)
@@ -96,10 +98,17 @@ for (j in 1:l) {
 }
 proc.time()-tiempo
 
+MATRIZ_CONSULTA$Var <- 0.00
+colnames(MATRIZ_CONSULTA)[ncol(MATRIZ_CONSULTA)] <- MATRIZ_CONSULTA$ID[nrow(MATRIZ_CONSULTA)]
+rownames(MATRIZ_CONSULTA) <- MATRIZ_CONSULTA$ID
+MATRIZ_CONSULTA$ID <- NULL
+
+MATRIZ_CONSULTA <- MATRIZ_CONSULTA + t(MATRIZ_CONSULTA)
+
 remDr$quit()
 system("taskkill /im java.exe /f", intern = F, ignore.stdout = F)
 
-write.xlsx(MATRIZ_CONSULTA,'Res_Matriz_Internet.xlsx',row.names = F)
+write.xlsx(MATRIZ_CONSULTA,'Res_Matriz_Internet.xlsx',row.names = T)
 #===============================================================================
 # CALCULO DE LA DISTANCIA CON FORMULA
 #===============================================================================
@@ -148,7 +157,7 @@ for (j in 1:l) {
 proc.time()-tiempo
 
 MATRIZ_CALCULADA$Var <- 0.00
-colnames(MATRIZ_CALCULADA)[ncol(MATRIZ_CALCULADA)] <- COORDENADAS$ID[nrow(COORDENADAS)]
+colnames(MATRIZ_CALCULADA)[ncol(MATRIZ_CALCULADA)] <- MATRIZ_CALCULADA$ID[nrow(MATRIZ_CALCULADA)]
 rownames(MATRIZ_CALCULADA) <- MATRIZ_CALCULADA$ID
 MATRIZ_CALCULADA$ID <- NULL
 
