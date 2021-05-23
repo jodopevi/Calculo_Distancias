@@ -43,16 +43,16 @@ ui <- fluidPage(
                                                       choices = ''),
                                           
                                           selectInput('latitud',
-                                                         'Variable de la Latitud',
-                                                         ''),
+                                                      'Variable de la Latitud',
+                                                      ''),
                                           
                                           selectInput('longitud',
-                                                         'Variable de la Longitud',
-                                                         ''),
+                                                      'Variable de la Longitud',
+                                                      ''),
                                           
                                           selectInput('id',
-                                                         'ID de los datos',
-                                                         ''),
+                                                      'ID de los datos',
+                                                      ''),
                                           
                                           actionButton('cargar_datos', 
                                                        'Cargar datos',
@@ -69,7 +69,9 @@ ui <- fluidPage(
                
                tabPanel('Matriz de Internet',
                         
-                        helpText('Cálculo de las distancias usando la página'),
+                        helpText('Cálculo de las distancias usando la página: ',
+                                 tags$a(href='https://www.nhc.noaa.gov/gccalc.shtml',
+                                        'noaa.gov')),
                         actionButton('descargar_distancia', 
                                      'Generar',
                                      class = 'butt'),
